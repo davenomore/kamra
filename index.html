@@ -14,9 +14,7 @@
 
 <body>
     <div class="container">
-        <header style="position: relative;">
-            <button id="settings-btn" class="btn-text" style="position: absolute; right: 0; top: 0;"
-                title="Beállítások">⚙️</button>
+        <header>
             <h1>Kamra</h1>
             <p>Rendszerezd stílusosan a hozzávalókat.</p>
         </header>
@@ -208,30 +206,6 @@
                 </div>
                 <div class="modal-body">
                     <div id="reader" style="width: 100%;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Settings Modal -->
-        <div id="settings-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Beállítások</h2>
-                    <button id="close-settings-btn" class="btn-text">✕</button>
-                </div>
-                <div class="modal-body">
-                    <div class="input-group">
-                        <label for="api-url" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Google
-                            Apps Script URL</label>
-                        <input type="text" id="api-url" placeholder="https://script.google.com/macros/s/..."
-                            style="width: 100%;">
-                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
-                            Illeszd be ide a közzétett Web App URL-jét a szinkronizáláshoz.
-                        </p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button id="save-settings-btn" class="btn-primary">Mentés</button>
                 </div>
             </div>
         </div>

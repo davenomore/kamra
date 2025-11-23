@@ -31,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let editingRecipeId = null;
 
     // State
-    let apiUrl = localStorage.getItem('apiUrl') || '';
+    const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzlLCZVs9a3nSJoVx_VGsSTC1YnZn33_cAB-K7ybZ2UTDLFWyJ1we65KtMSRfmo93aoDg/exec';
+    let apiUrl = localStorage.getItem('apiUrl') || DEFAULT_API_URL;
     let pantryItems = [];
     let shoppingList = [];
     let recipes = [];
@@ -626,38 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Cloud Sync Functions ---
 
-    const settingsModal = document.getElementById('settings-modal');
-    const settingsBtn = document.getElementById('settings-btn');
-    const closeSettingsBtn = document.getElementById('close-settings-btn');
-    const saveSettingsBtn = document.getElementById('save-settings-btn');
-    const apiUrlInput = document.getElementById('api-url');
-
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', () => {
-            apiUrlInput.value = apiUrl;
-            settingsModal.classList.remove('hidden');
-        });
-    }
-
-    if (closeSettingsBtn) {
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsModal.classList.add('hidden');
-        });
-    }
-
-    if (saveSettingsBtn) {
-        saveSettingsBtn.addEventListener('click', () => {
-            const url = apiUrlInput.value.trim();
-            if (url) {
-                apiUrl = url;
-                localStorage.setItem('apiUrl', apiUrl);
-                settingsModal.classList.add('hidden');
-                loadData(); // Reload data from new URL
-            } else {
-                alert('Kérlek add meg az URL-t!');
-            }
-        });
-    }
+    // Settings UI removed as per user request. API URL is hardcoded.
 
     async function loadData() {
         if (!apiUrl) {
@@ -675,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Show loading state (optional)
             document.body.style.cursor = 'wait';
-            const response = await fetch(apiUrl);
+            const response = await fetch(apiUrl, { redirect: 'follow' });
             const data = await response.json();
 
             pantryItems = data.pantryItems || [];
@@ -708,6 +678,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await fetch(apiUrl, {
                 method: 'POST',
+                redirect: 'follow',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                },
                 body: JSON.stringify({
                     pantryItems,
                     shoppingList,
@@ -721,7 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             isSyncing = false;
         }
-    }, 2000); // 2 second debounce
+    }, 1000); // 1 second debounce
 
     function saveData() {
         debouncedSave();
