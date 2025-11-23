@@ -20,6 +20,34 @@
         </header>
 
         <div class="top-row">
+            <!-- Mobile Navigation Buttons -->
+            <div class="mobile-nav-buttons">
+                <button id="nav-add-item" class="nav-btn active">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    <span>Hozzáadás</span>
+                </button>
+                <button id="nav-recipe" class="nav-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path>
+                        <path d="M7 2v20"></path>
+                        <path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path>
+                    </svg>
+                    <span>Mit főzzünk?</span>
+                </button>
+                <button id="nav-inspiration" class="nav-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5">
+                        </path>
+                        <path d="M9 18h6"></path>
+                        <path d="M10 22h4"></path>
+                    </svg>
+                    <span>Inspiráció</span>
+                </button>
+            </div>
             <section class="add-item-section">
                 <div class="input-group" style="display: flex; gap: 0.5rem;">
                     <input type="text" id="item-name" placeholder="Termék neve (pl. Spagetti)" autocomplete="off">
@@ -238,6 +266,15 @@
                 <div class="skeleton-item"></div>
                 <div class="skeleton-item"></div>
                 <div class="skeleton-item"></div>
+            </div>
+
+            <div class="search-container">
+                <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="search-input" placeholder="Keresés a kamrában...">
             </div>
 
             <main id="pantry-list">

@@ -54,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiChefBtn = document.getElementById('ai-chef-btn');
     const inspirationDetails = document.getElementById('inspiration-details');
 
+    const searchInput = document.getElementById('search-input');
+
     // Event Listeners
     addBtn.addEventListener('click', addItem);
     if (expiryBtn) {
@@ -67,6 +69,59 @@ document.addEventListener('DOMContentLoaded', () => {
     itemNameInput.addEventListener('input', suggestCategory); // Add suggestion listener
     clearListBtn.addEventListener('click', clearShoppingList);
     addCheckedToPantryBtn.addEventListener('click', addCheckedToPantry);
+
+    // Search Listener
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) {
+            renderItems(pantryItems, false); // Show all, collapsed
+            return;
+        }
+
+        const filteredItems = pantryItems.filter(item =>
+            item.name.toLowerCase().includes(query) ||
+            item.category.toLowerCase().includes(query)
+        );
+        renderItems(filteredItems, true); // Show filtered, expanded
+    });
+
+    // Mobile Navigation
+    const navAddItem = document.getElementById('nav-add-item');
+    const navRecipe = document.getElementById('nav-recipe');
+    const navInspiration = document.getElementById('nav-inspiration');
+
+    const addItemSection = document.querySelector('.add-item-section');
+    const recipeSection = document.querySelector('.recipe-section');
+    const inspirationSection = document.querySelector('.inspiration-section');
+
+    function switchMobileSection(sectionName) {
+        // Remove active class from all buttons and sections
+        [navAddItem, navRecipe, navInspiration].forEach(btn => btn.classList.remove('active'));
+        [addItemSection, recipeSection, inspirationSection].forEach(sec => sec.classList.remove('active'));
+
+        // Add active class to selected
+        if (sectionName === 'add-item') {
+            navAddItem.classList.add('active');
+            addItemSection.classList.add('active');
+        } else if (sectionName === 'recipe') {
+            navRecipe.classList.add('active');
+            recipeSection.classList.add('active');
+        } else if (sectionName === 'inspiration') {
+            navInspiration.classList.add('active');
+            inspirationSection.classList.add('active');
+        }
+    }
+
+    if (navAddItem && navRecipe && navInspiration) {
+        navAddItem.addEventListener('click', () => switchMobileSection('add-item'));
+        navRecipe.addEventListener('click', () => switchMobileSection('recipe'));
+        navInspiration.addEventListener('click', () => switchMobileSection('inspiration'));
+
+        // Initialize active state for mobile
+        if (window.innerWidth <= 768) {
+            addItemSection.classList.add('active');
+        }
+    }
 
     // Recipe Event Listeners
     checkRecipeBtn.addEventListener('click', checkRecipe);
@@ -166,13 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
         itemNameInput.focus();
     }
 
-    function renderItems() {
+    function renderItems(itemsToRender = pantryItems, shouldExpand = false) {
         pantryList.innerHTML = '';
 
-        if (pantryItems.length === 0) {
+        if (itemsToRender.length === 0) {
             pantryList.innerHTML = `
                 <div class="empty-state">
-                    <p>Még nincsenek termékek a kamrában.</p>
+                    <p>${pantryItems.length === 0 ? 'Még nincsenek termékek a kamrában.' : 'Nincs találat a keresésre.'}</p>
                 </div>
             `;
             return;
@@ -180,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Group items by category
         const groupedItems = {};
-        pantryItems.forEach(item => {
+        itemsToRender.forEach(item => {
             if (!groupedItems[item.category]) {
                 groupedItems[item.category] = [];
             }
@@ -190,8 +245,27 @@ document.addEventListener('DOMContentLoaded', () => {
         // Sort categories alphabetically
         const sortedCategories = Object.keys(groupedItems).sort();
 
+        // Category Icons Map (Minimalist SVGs)
+        const categoryIcons = {
+            'Tészták': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2 12 4"/><path d="M12 20 12 22"/><path d="M20 12 22 12"/><path d="M2 12 4 12"/><path d="M9 2v10"/><path d="M15 2v10"/><path d="M12 2v10"/></svg>', // Pasta/Spaghetti
+            'Fűszerek': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>', // Star/Sparkle
+            'Zöldségek': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c-4 0-8 4-8 9 0 4.5 3.5 8 8 9 4.5-1 8-4.5 8-9 0-5-4-9-8-9z"/><path d="M12 22V11"/></svg>', // Leaf
+            'Gyümölcsök': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 4a2 2 0 0 1 2 2"/></svg>', // Apple-ish
+            'Konzervek': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>', // Database/Can
+            'Tejtermékek': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2z"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="16" r="2"/><circle cx="8" cy="16" r="1"/><circle cx="16" cy="8" r="1"/><circle cx="12" cy="12" r="2"/></svg>', // Better Cheese Block
+            'Pékáru': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 20.5C10 21.3 10.7 22 11.5 22h1c.8 0 1.5-.7 1.5-1.5V18h-2.5v2.5z"/><path d="M7 18h10v-5.8c0-2.2-1.8-4-4-4h-2c-2.2 0-4 1.8-4 4v5.8z"/><path d="M7 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2"/></svg>', // Bread/Toast
+            'Húsok': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5c-1.5 0-2.8 0.6-3.8 1.6l-8.4 8.4c-0.9 0.9-1.4 2.1-1.4 3.4 0 2.7 2.2 4.9 4.9 4.9 1.3 0 2.5-0.5 3.4-1.4l8.4-8.4c1-1 1.6-2.3 1.6-3.8 0-2.7-2.2-4.9-4.9-4.9z"/><path d="M16 8L8 16"/></svg>', // Drumstick/Meat
+            'Italok': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>', // Coffee Cup
+            'Snack': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>', // Target/Snack
+            'Szószok': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 7.8l-7.7 7.7a4 4 0 0 1-5.7-5.7l7.7-7.7c0.9-0.9 2.4-0.9 3.3 0l2.4 2.4c0.9 0.9 0.9 2.4 0 3.3z"/><path d="M12 12l4 4"/></svg>', // Bottle
+            'Sütés': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v2"/><path d="M12 8v2"/><path d="M17 8v2"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg>', // Cake
+            'Gabonafélék': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V8a5 5 0 0 1 5-5c2.5 0 5 2.24 5 5v8"/><path d="M12 22V11"/><path d="M12 8a2 2 0 0 0-2-2"/><path d="M12 8a2 2 0 0 1 2-2"/><path d="M12 12a2 2 0 0 0-2-2"/><path d="M12 12a2 2 0 0 1 2-2"/><path d="M12 16a2 2 0 0 0-2-2"/><path d="M12 16a2 2 0 0 1 2-2"/></svg>', // Wheat/Grain
+            'Egyéb': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' // Box
+        };
+
         sortedCategories.forEach(category => {
             const items = groupedItems[category];
+            const icon = categoryIcons[category] || categoryIcons['Egyéb'];
 
             // Create category section
             const categorySection = document.createElement('div');
@@ -200,12 +274,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const categoryHeader = document.createElement('div');
             categoryHeader.className = 'category-title';
             categoryHeader.innerHTML = `
-                ${category}
-                <span class="category-count">${items.length}</span>
+                <div class="category-title-content">
+                    <span class="category-icon">${icon}</span>
+                    ${category}
+                    <span class="category-count">${items.length}</span>
+                    <svg class="category-chevron ${shouldExpand ? '' : 'rotated'}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
             `;
 
             const itemsGrid = document.createElement('div');
-            itemsGrid.className = 'items-grid';
+            itemsGrid.className = `items-grid ${shouldExpand ? '' : 'hidden'}`;
+
+            // Toggle functionality
+            categoryHeader.addEventListener('click', () => {
+                itemsGrid.classList.toggle('hidden');
+                const chevron = categoryHeader.querySelector('.category-chevron');
+                chevron.classList.toggle('rotated');
+            });
 
             // Sort items alphabetically within category
             items.sort((a, b) => a.name.localeCompare(b.name));

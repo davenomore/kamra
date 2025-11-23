@@ -610,6 +610,38 @@ input::placeholder {
     background-color: var(--accent-hover);
 }
 
+/* Search Bar */
+.search-container {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+#search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 1rem;
+    background: var(--bg-secondary);
+    transition: all 0.2s;
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    background: var(--card-bg);
+}
+
 /* Pantry List Styles */
 .category-group {
     margin-bottom: 2rem;
@@ -621,11 +653,22 @@ input::placeholder {
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--border-color);
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.category-title-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.category-icon {
+    display: flex;
+    align-items: center;
+    color: var(--primary-color);
 }
 
 .category-count {
@@ -635,6 +678,19 @@ input::placeholder {
     background: #e5e7eb;
     padding: 0.1rem 0.5rem;
     border-radius: 12px;
+}
+
+.category-chevron {
+    color: var(--text-secondary);
+    transition: transform 0.3s ease;
+}
+
+.category-chevron.rotated {
+    transform: rotate(-90deg);
+}
+
+.items-grid.hidden {
+    display: none;
 }
 
 .items-grid {
@@ -994,4 +1050,83 @@ input::placeholder {
 
 .spinning {
     animation: spin 1s linear infinite;
+}
+
+/* Mobile Navigation */
+.mobile-nav-buttons {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-nav-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+        /* Further reduced gap */
+    }
+
+    .nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        /* Reduced gap */
+        padding: 0.5rem;
+        background: rgba(0, 0, 0, 0.05);
+        /* Gray bg like btn-icon */
+        border: none;
+        /* No border */
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        /* Smaller font */
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .nav-btn svg {
+        width: 24px;
+        height: 24px;
+        stroke-width: 1.5;
+        /* Thinner stroke for elegance */
+    }
+
+    .nav-btn.active {
+        background: rgba(16, 185, 129, 0.1);
+        /* Subtle accent bg */
+        color: var(--accent-color);
+        /* Accent color text/icon */
+        border: none;
+        box-shadow: none;
+        /* Remove shadow */
+    }
+
+    /* Hide sections by default on mobile, except the active one */
+    .add-item-section,
+    .recipe-section,
+    .inspiration-section {
+        display: none;
+    }
+
+    .add-item-section.active,
+    .recipe-section.active,
+    .inspiration-section.active {
+        display: block;
+        animation: fadeIn 0.3s ease-out;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
