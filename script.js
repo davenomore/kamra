@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRecipeSelect();
     updateCategoryDatalist();
     loadData(); // Fetch data from cloud // Initialize datalist
-    generateInspiration(); // Auto-generate inspiration on load
+    generateInspiration(true); // Auto-generate inspiration on load (silent)
 
     const expiryBtn = document.getElementById('expiry-btn');
     const expiryContainer = document.getElementById('expiry-date-container');
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
     newRecipeNameInput.addEventListener('input', suggestRecipeCategory); // Auto-suggest category
 
     // Inspiration Event Listener
-    generateInspirationBtn.addEventListener('click', generateInspiration);
+    generateInspirationBtn.addEventListener('click', () => generateInspiration(false));
 
     // Close modal on outside click
     window.addEventListener('click', (e) => {
@@ -1456,7 +1456,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function generateInspiration() {
+    async function generateInspiration(silent = false) {
         const originalBtnContent = generateInspirationBtn.innerHTML;
         // Hourglass/Loading icon
         generateInspirationBtn.innerHTML = '<svg class="icon spinning" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"></path><path d="M12 18v4"></path><path d="M4.93 4.93l2.83 2.83"></path><path d="M16.24 16.24l2.83 2.83"></path><path d="M2 12h4"></path><path d="M18 12h4"></path><path d="M4.93 19.07l2.83-2.83"></path><path d="M16.24 7.76l2.83-2.83"></path></svg>';
@@ -1522,11 +1522,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 inspirationDetails.innerHTML = html;
                 inspirationResult.classList.remove('hidden');
             } else {
-                alert('Nem sikerült ételt találni. Próbáld újra!');
+                if (!silent) alert('Nem sikerült ételt találni. Próbáld újra!');
             }
         } catch (error) {
             console.error('Error generating inspiration:', error);
-            alert('Hiba történt az inspiráció generálása során.');
+            if (!silent) alert('Hiba történt az inspiráció generálása során.');
         } finally {
             generateInspirationBtn.innerHTML = originalBtnContent;
             generateInspirationBtn.disabled = false;
