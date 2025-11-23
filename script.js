@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Shopping List Elements
     const shoppingListItemsContainer = document.getElementById('shopping-list-items');
     const clearListBtn = document.getElementById('clear-list-btn');
+    const addCheckedToPantryBtn = document.getElementById('add-checked-to-pantry-btn');
 
     // Recipe Elements
     const recipeSelect = document.getElementById('recipe-select');
@@ -31,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let editingRecipeId = null;
 
     // State
-    const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbzlLCZVs9a3nSJoVx_VGsSTC1YnZn33_cAB-K7ybZ2UTDLFWyJ1we65KtMSRfmo93aoDg/exec';
+    const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycbxh9l82Q7M-enGUV1E_jqIFhSnxMgP0t7Qi8mg9BuxW95kStb84mb5JQNj_szGpSq00/exec';
     let apiUrl = localStorage.getItem('apiUrl') || DEFAULT_API_URL;
     let pantryItems = [];
     let shoppingList = [];
@@ -45,11 +46,27 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRecipeSelect();
     updateCategoryDatalist();
     loadData(); // Fetch data from cloud // Initialize datalist
+    generateInspiration(); // Auto-generate inspiration on load
+
+    const expiryBtn = document.getElementById('expiry-btn');
+    const expiryContainer = document.getElementById('expiry-date-container');
+    const itemExpiryInput = document.getElementById('item-expiry');
+    const aiChefBtn = document.getElementById('ai-chef-btn');
+    const inspirationDetails = document.getElementById('inspiration-details');
 
     // Event Listeners
     addBtn.addEventListener('click', addItem);
+    if (expiryBtn) {
+        expiryBtn.addEventListener('click', () => {
+            expiryContainer.classList.toggle('hidden');
+        });
+    }
+    if (aiChefBtn) {
+        aiChefBtn.addEventListener('click', generateAiRecipe);
+    }
     itemNameInput.addEventListener('input', suggestCategory); // Add suggestion listener
     clearListBtn.addEventListener('click', clearShoppingList);
+    addCheckedToPantryBtn.addEventListener('click', addCheckedToPantry);
 
     // Recipe Event Listeners
     checkRecipeBtn.addEventListener('click', checkRecipe);
@@ -59,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     closeModalBtn.addEventListener('click', closeRecipeModal);
     addIngredientRowBtn.addEventListener('click', addIngredientRow);
     saveRecipeBtn.addEventListener('click', saveNewRecipe);
+    newRecipeNameInput.addEventListener('input', suggestRecipeCategory); // Auto-suggest category
 
     // Inspiration Event Listener
     generateInspirationBtn.addEventListener('click', generateInspiration);
@@ -88,44 +106,50 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!categoryInput) {
-            categoryInput = 'Egyéb';
-        }
+        const name = nameInput;
+        const quantity = parseFloat(quantityInput);
+        const unit = unitInput;
+        const category = categoryInput || 'Egyéb';
+        const expiry = itemExpiryInput.value;
 
-        const capitalizedName = capitalizeFirstLetter(nameInput);
-        const quantity = quantityInput ? parseFloat(quantityInput) : 0;
-        const unit = unitInput || 'db';
+        if (name && !isNaN(quantity) && unit) {
+            // Check if item already exists
+            const existingItemIndex = pantryItems.findIndex(item => item.name.toLowerCase() === name.toLowerCase() && item.unit === unit);
 
-        // Check if item already exists
-        const existingItem = pantryItems.find(item =>
-            item.name.toLowerCase() === capitalizedName.toLowerCase() &&
-            item.unit === unit
-        );
-
-        if (existingItem) {
-            // Update existing item
-            existingItem.quantity = parseFloat(existingItem.quantity) + quantity;
-
-            // Update category if the new one is not 'Egyéb' and the old one was
-            if (existingItem.category === 'Egyéb' && categoryInput !== 'Egyéb') {
-                existingItem.category = categoryInput;
+            if (existingItemIndex > -1) {
+                // Update existing item
+                pantryItems[existingItemIndex].quantity += quantity;
+                // Update expiry only if new one is provided
+                if (expiry) {
+                    pantryItems[existingItemIndex].expiry = expiry;
+                }
+            } else {
+                // Add new item
+                const newItem = {
+                    id: Date.now(), // Keep original ID generation
+                    name: capitalizeFirstLetter(name),
+                    quantity: quantity,
+                    unit: unit,
+                    category: capitalizeFirstLetter(category),
+                    expiry: expiry
+                };
+                pantryItems.push(newItem);
             }
-        } else {
-            // Create new item
-            const newItem = {
-                id: Date.now(),
-                name: capitalizedName,
-                quantity: quantity,
-                unit: unit,
-                category: categoryInput
-            };
-            pantryItems.push(newItem);
-        }
 
-        saveData();
-        renderItems();
-        updateCategoryDatalist(); // Update datalist with potential new category
-        clearInputs();
+            saveData();
+            renderItems();
+            updateCategoryDatalist();
+
+            // Clear inputs
+            itemNameInput.value = '';
+            itemQuantityInput.value = '';
+            itemUnitInput.value = '';
+            itemCategoryInput.value = '';
+            itemExpiryInput.value = '';
+            expiryContainer.classList.add('hidden');
+        } else {
+            alert('Kérlek töltsd ki a kötelező mezőket (Név, Mennyiség, Mértékegység)!');
+        }
     }
 
     function deleteItem(id) {
@@ -190,9 +214,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const itemCard = document.createElement('div');
                 itemCard.className = 'item-card';
                 itemCard.innerHTML = `
-                    <div class="item-info">
-                        <h3>${item.name}</h3>
-                        <p class="item-quantity">${item.quantity} ${item.unit}</p>
+                    <div class="item-details">
+                        <span class="item-name">${item.name}</span>
+                        <span class="item-quantity">${item.quantity} ${item.unit}</span>
+                        ${item.expiry ? `<span class="item-expiry" title="Lejárat: ${item.expiry}">🕒 ${item.expiry}</span>` : ''}
                     </div>
                     <div class="item-actions">
                         <button class="add-to-list-btn" title="Hozzáadás a bevásárlólistához">
@@ -283,6 +308,63 @@ document.addEventListener('DOMContentLoaded', () => {
         saveData();
         renderShoppingList();
         renderItems(); // Update pantry view
+    }
+
+    function addCheckedToPantry() {
+        // Get all checked items
+        const checkedItems = shoppingList.filter(item => item.bought === true);
+
+        if (checkedItems.length === 0) {
+            alert('Nincs kiválasztva egy termék sem! Jelöld be a vásárolt termékeket.');
+            return;
+        }
+
+        // Add checked items to pantry
+        checkedItems.forEach(item => {
+            // Check if item already exists in pantry
+            const existingItem = pantryItems.find(pItem =>
+                pItem.name.toLowerCase() === item.name.toLowerCase()
+            );
+
+            if (existingItem) {
+                // Item exists - add quantities (with unit conversion if needed)
+                const existingNormalized = normalizeQuantity(
+                    parseFloat(existingItem.quantity) || 0,
+                    existingItem.unit,
+                    item.name
+                );
+                const newNormalized = normalizeQuantity(
+                    parseFloat(item.quantity) || 0,
+                    item.unit,
+                    item.name
+                );
+
+                const totalNormalized = existingNormalized + newNormalized;
+                const totalInOriginalUnit = totalNormalized / normalizeQuantity(1, existingItem.unit, item.name);
+
+                existingItem.quantity = totalInOriginalUnit;
+            } else {
+                // Item doesn't exist - add new
+                pantryItems.push({
+                    id: Date.now() + Math.random(),
+                    name: item.name,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                    category: item.category || 'Egyéb',
+                    expiry: ''
+                });
+            }
+        });
+
+        // Remove checked items from shopping list
+        shoppingList = shoppingList.filter(item => item.bought !== true);
+
+        // Save and render
+        saveData();
+        renderItems();
+        renderShoppingList();
+
+        alert(`${checkedItems.length} termék hozzáadva a készlethez!`);
     }
 
     function clearShoppingList() {
@@ -412,8 +494,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Item completely missing
                     missingItems.push(reqItem);
                 } else {
-                    // Item exists, check quantity
-                    if (parseFloat(pantryItem.quantity) < reqItem.quantity) {
+                    // Item exists, check quantity with unit conversion
+                    const pantryQty = parseFloat(pantryItem.quantity) || 0;
+                    const recipeQty = parseFloat(reqItem.quantity) || 0;
+
+                    // Convert both to comparable units
+                    const pantryNormalized = normalizeQuantity(pantryQty, pantryItem.unit, reqItem.name);
+                    const recipeNormalized = normalizeQuantity(recipeQty, reqItem.unit, reqItem.name);
+
+                    if (pantryNormalized < recipeNormalized) {
                         missingItems.push(reqItem);
                     }
                 }
@@ -422,24 +511,23 @@ document.addEventListener('DOMContentLoaded', () => {
             if (missingItems.length > 0) {
                 let message = `A következő hozzávalók hiányoznak vagy nincs belőlük elég a(z) ${recipe.name} recepthez:\n\n`;
 
-                // Process missing items sequentially to allow async API calls
-                for (const item of missingItems) {
+                // Show AI processing message
+                checkRecipeBtn.innerHTML = '<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> AI javaslatok...';
+
+                // Process missing items with AI suggestions (parallel for speed)
+                const suggestions = await Promise.all(missingItems.map(async (item) => {
                     message += `- ${item.name} (${item.quantity} ${item.unit})\n`;
 
-                    // Try to find category
+                    // Get category
                     let category = 'Egyéb';
-
-                    // 1. Check existing pantry items
                     const existingPantryItem = pantryItems.find(p => p.name && p.name.toLowerCase() === item.name.toLowerCase());
                     if (existingPantryItem && existingPantryItem.category !== 'Egyéb') {
                         category = existingPantryItem.category;
                     } else {
-                        // 2. Check keywords
                         const keywordCategory = getCategoryFromKeywords(item.name.toLowerCase());
                         if (keywordCategory) {
                             category = keywordCategory;
                         } else {
-                            // 3. API Lookup
                             const apiCategory = await fetchCategory(item.name);
                             if (apiCategory) {
                                 category = apiCategory;
@@ -447,15 +535,50 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    addToShoppingList({
-                        name: item.name,
-                        quantity: item.quantity,
-                        unit: item.unit,
-                        category: category
-                    });
-                }
+                    // Get AI shopping suggestion
+                    let suggestedQuantity = item.quantity;
+                    let suggestedUnit = item.unit;
 
-                message += `\nEzeket hozzáadtam a bevásárlólistához.`;
+                    if (apiUrl) {
+                        try {
+                            console.log('Requesting AI suggestion for:', item.name, item.quantity, item.unit);
+                            const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                redirect: 'follow',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify({
+                                    action: 'suggestShoppingQuantity',
+                                    ingredientName: item.name,
+                                    recipeQuantity: item.quantity,
+                                    recipeUnit: item.unit
+                                })
+                            });
+
+                            const data = await response.json();
+                            console.log('AI response:', data);
+                            if (data.status === 'success') {
+                                suggestedQuantity = data.quantity;
+                                suggestedUnit = data.unit;
+                                console.log('Suggested:', suggestedQuantity, suggestedUnit);
+                            }
+                        } catch (e) {
+                            console.warn('AI suggestion failed for', item.name, e);
+                            // Use original values as fallback
+                        }
+                    }
+
+                    return {
+                        name: item.name,
+                        quantity: suggestedQuantity,
+                        unit: suggestedUnit,
+                        category: category
+                    };
+                }));
+
+                // Add all items to shopping list with AI suggestions
+                suggestions.forEach(item => addToShoppingList(item));
+
+                message += `\nEzeket hozzáadtam a bevásárlólistához (AI által javasolt vásárlási mennyiséggel).`;
                 alert(message);
             } else {
                 alert(`Minden hozzávaló megvan a(z) ${recipe.name} recepthez! Jó főzést! 👨‍🍳`);
@@ -471,12 +594,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openRecipeModal() {
-        editingRecipeId = null; // Reset editing state
+        editingRecipeId = null;
         recipeModal.classList.remove('hidden');
-        recipeIngredientsList.innerHTML = '';
+
+        // Try to restore saved draft from sessionStorage
+        const savedDraft = sessionStorage.getItem('recipeDraft');
+        if (savedDraft) {
+            try {
+                const draft = JSON.parse(savedDraft);
+                newRecipeNameInput.value = draft.name || '';
+                recipeCategorySelect.value = draft.category || '';
+
+                // Clear existing rows
+                recipeIngredientsList.innerHTML = '';
+
+                // Restore ingredients
+                if (draft.ingredients && draft.ingredients.length > 0) {
+                    draft.ingredients.forEach(ing => {
+                        addIngredientRow(ing.name, ing.quantity, ing.unit);
+                    });
+                } else {
+                    addIngredientRow(); // Add one empty row
+                }
+            } catch (e) {
+                console.error('Failed to restore draft:', e);
+                setupNewRecipeModal();
+            }
+        } else {
+            setupNewRecipeModal();
+        }
+
+        // Auto-save on input changes
+        enableAutoSave();
+    }
+
+    function setupNewRecipeModal() {
         newRecipeNameInput.value = '';
+        recipeCategorySelect.value = '';
+        recipeIngredientsList.innerHTML = '';
         addIngredientRow(); // Add one empty row by default
-        document.querySelector('.modal-header h2').textContent = 'Új Recept';
+    }
+
+    function enableAutoSave() {
+        const autoSave = () => {
+            const ingredients = [];
+            const rows = recipeIngredientsList.querySelectorAll('.ingredient-row');
+            rows.forEach(row => {
+                const name = row.querySelector('.ing-name').value.trim();
+                const quantity = parseFloat(row.querySelector('.ing-qty').value) || 0;
+                const unit = row.querySelector('.ing-unit').value.trim();
+                if (name) {
+                    ingredients.push({ name, quantity, unit });
+                }
+            });
+
+            const draft = {
+                name: newRecipeNameInput.value.trim(),
+                category: recipeCategorySelect.value,
+                ingredients: ingredients
+            };
+
+            sessionStorage.setItem('recipeDraft', JSON.stringify(draft));
+        };
+
+        // Save on every input change
+        newRecipeNameInput.addEventListener('input', autoSave);
+        recipeCategorySelect.addEventListener('change', autoSave);
+
+        // We need to add listeners to ingredient rows dynamically
+        // Use event delegation on the parent container
+        recipeIngredientsList.addEventListener('input', autoSave);
+    }
+
+    function closeRecipeModal() {
+        recipeModal.classList.add('hidden');
+        // Don't clear the draft here - only clear on successful save
     }
 
     function editRecipe() {
@@ -494,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
         recipeIngredientsList.innerHTML = '';
         newRecipeNameInput.value = recipe.name;
         recipeCategorySelect.value = recipe.category || 'Egyéb';
-        document.querySelector('.modal-header h2').textContent = 'Recept Szerkesztése';
+        document.querySelector('.modal-header h2').textContent = 'Recept szerkesztése';
 
         recipe.ingredients.forEach(ing => {
             addIngredientRow(ing.name, ing.quantity, ing.unit);
@@ -511,12 +703,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const recipe = recipes.find(r => r.id === recipeId);
         if (!recipe) return;
 
-        // Check availability first
+        // Check availability first with unit conversion
         let missingItems = [];
         recipe.ingredients.forEach(reqItem => {
             const pantryItem = pantryItems.find(pItem => pItem.name.toLowerCase() === reqItem.name.toLowerCase());
-            if (!pantryItem || parseFloat(pantryItem.quantity) < reqItem.quantity) {
+
+            if (!pantryItem) {
                 missingItems.push(reqItem);
+            } else {
+                // Use unit conversion for accurate comparison
+                const pantryQty = parseFloat(pantryItem.quantity) || 0;
+                const recipeQty = parseFloat(reqItem.quantity) || 0;
+
+                const pantryNormalized = normalizeQuantity(pantryQty, pantryItem.unit, reqItem.name);
+                const recipeNormalized = normalizeQuantity(recipeQty, reqItem.unit, reqItem.name);
+
+                if (pantryNormalized < recipeNormalized) {
+                    missingItems.push(reqItem);
+                }
             }
         });
 
@@ -525,13 +729,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!proceed) return;
         }
 
-        // Deduct ingredients
+        // Deduct ingredients with unit conversion
         recipe.ingredients.forEach(reqItem => {
             const pantryItem = pantryItems.find(pItem => pItem.name.toLowerCase() === reqItem.name.toLowerCase());
             if (pantryItem) {
-                let newQty = parseFloat(pantryItem.quantity) - reqItem.quantity;
-                if (newQty < 0) newQty = 0; // Don't go negative
-                pantryItem.quantity = newQty;
+                const pantryQty = parseFloat(pantryItem.quantity) || 0;
+                const recipeQty = parseFloat(reqItem.quantity) || 0;
+
+                // Convert recipe quantity to pantry units for deduction
+                const pantryNormalized = normalizeQuantity(pantryQty, pantryItem.unit, reqItem.name);
+                const recipeNormalized = normalizeQuantity(recipeQty, reqItem.unit, reqItem.name);
+
+                // Calculate new quantity in original pantry units
+                const newNormalized = pantryNormalized - recipeNormalized;
+                const newQty = (newNormalized / normalizeQuantity(1, pantryItem.unit, reqItem.name));
+
+                pantryItem.quantity = Math.max(0, newQty); // Don't go negative
             }
         });
 
@@ -548,10 +761,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function addIngredientRow(name = '', qty = '', unit = '') {
+        // If name is an event object, ignore it
+        if (typeof name === 'object' && name !== null) {
+            name = '';
+            qty = '';
+            unit = '';
+        }
+
         const row = document.createElement('div');
         row.className = 'ingredient-row';
         row.innerHTML = `
-            <input type="text" placeholder="Név" class="ing-name" value="${name}">
+            <input type="text" placeholder="Alapanyag" class="ing-name" value="${name}">
             <input type="number" placeholder="Menny." class="ing-qty" step="0.1" value="${qty}">
             <input type="text" placeholder="Egység" class="ing-unit" value="${unit}">
             <button class="btn-text remove-row">✕</button>
@@ -616,10 +836,56 @@ document.addEventListener('DOMContentLoaded', () => {
         saveData();
         renderRecipeSelect();
         closeRecipeModal();
+        // Clear the draft after successful save
+        sessionStorage.removeItem('recipeDraft');
         alert('Recept sikeresen mentve!');
     }
 
-    // --- Common ---
+    // --- Helper Functions ---
+
+    // Normalize quantities to comparable units (grams for solids, ml for liquids)
+    function normalizeQuantity(quantity, unit, itemName) {
+        const qty = parseFloat(quantity) || 0;
+        const unitLower = (unit || '').toLowerCase().trim();
+        const nameLower = (itemName || '').toLowerCase();
+
+        // Determine if item is liquid or solid
+        const isLiquid = nameLower.includes('tej') || nameLower.includes('víz') ||
+            nameLower.includes('olaj') || nameLower.includes('lé') ||
+            unitLower.includes('liter') || unitLower.includes('ml') || unitLower.includes('dl');
+
+        if (isLiquid) {
+            // Convert to ml (milliliters)
+            if (unitLower === 'liter' || unitLower === 'l') return qty * 1000;
+            if (unitLower === 'dl') return qty * 100;
+            if (unitLower === 'ml') return qty;
+            return qty; // Unknown unit, assume ml
+        } else {
+            // Convert to grams
+            if (unitLower === 'kg' || unitLower === 'kilogramm') return qty * 1000;
+            if (unitLower === 'g' || unitLower === 'gramm') return qty;
+            if (unitLower === 'dkg' || unitLower === 'dekagramm') return qty * 10;
+
+            // Approximate conversions for tablespoons/teaspoons (very rough!)
+            if (unitLower === 'ek' || unitLower === 'evőkanál') {
+                // 1 tablespoon ≈ 15g (varies by ingredient, but this is rough)
+                return qty * 15;
+            }
+            if (unitLower === 'tk' || unitLower === 'teáskanál') {
+                // 1 teaspoon ≈ 5g
+                return qty * 5;
+            }
+            if (unitLower === 'csipet') {
+                // 1 pinch ≈ 1g
+                return qty;
+            }
+
+            // For pieces (db), return as-is for comparison
+            if (unitLower === 'db' || unitLower === 'darab') return qty;
+
+            return qty; // Unknown unit, return as-is
+        }
+    }
 
     function capitalizeFirstLetter(string) {
         if (!string) return '';
@@ -631,27 +897,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // Settings UI removed as per user request. API URL is hardcoded.
 
     async function loadData() {
-        if (!apiUrl) {
-            // Fallback to local storage if no URL
-            pantryItems = JSON.parse(localStorage.getItem('pantryItems')) || [];
-            shoppingList = JSON.parse(localStorage.getItem('shoppingList')) || [];
-            recipes = JSON.parse(localStorage.getItem('recipes')) || [];
+        // 1. Load from local cache immediately
+        const cachedPantry = localStorage.getItem('pantryItems');
+        const cachedShopping = localStorage.getItem('shoppingList');
+        const cachedRecipes = localStorage.getItem('recipes');
+
+        if (cachedPantry || cachedShopping || cachedRecipes) {
+            pantryItems = cachedPantry ? JSON.parse(cachedPantry) : [];
+            shoppingList = cachedShopping ? JSON.parse(cachedShopping) : [];
+            recipes = cachedRecipes ? JSON.parse(cachedRecipes) : [];
             renderItems();
             renderShoppingList();
             renderRecipeSelect();
             updateCategoryDatalist();
-            return;
         }
+
+        if (!apiUrl) return;
 
         try {
             // Show loading state (optional)
-            document.body.style.cursor = 'wait';
+            document.body.style.cursor = 'progress'; // Use progress cursor to indicate background work
+
+            // 2. Fetch fresh data from cloud
             const response = await fetch(apiUrl, { redirect: 'follow' });
             const data = await response.json();
 
-            pantryItems = data.pantryItems || [];
+            // Assign temporary IDs if missing (backend doesn't store IDs yet)
+            pantryItems = (data.pantryItems || []).map(item => ({
+                ...item,
+                id: item.id || Date.now() + Math.random()
+            }));
             shoppingList = data.shoppingList || [];
             recipes = data.recipes || [];
+
+            // Update cache
+            localStorage.setItem('pantryItems', JSON.stringify(pantryItems));
+            localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+            localStorage.setItem('recipes', JSON.stringify(recipes));
 
             renderItems();
             renderShoppingList();
@@ -659,17 +941,22 @@ document.addEventListener('DOMContentLoaded', () => {
             updateCategoryDatalist();
         } catch (error) {
             console.error('Error loading data:', error);
-            alert('Hiba történt az adatok betöltésekor. Ellenőrizd az internetkapcsolatot vagy az URL-t.');
+            // If cache was empty and fetch failed, alert user. Otherwise, silent fail (keep using cache).
+            if (!cachedPantry && !cachedShopping && !cachedRecipes) {
+                alert('Hiba történt az adatok betöltésekor. Ellenőrizd az internetkapcsolatot.');
+            }
         } finally {
             document.body.style.cursor = 'default';
         }
     }
 
     const debouncedSave = debounce(async () => {
+        // Always update localStorage first (instant local backup)
+        localStorage.setItem('pantryItems', JSON.stringify(pantryItems));
+        localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+        localStorage.setItem('recipes', JSON.stringify(recipes));
+
         if (!apiUrl) {
-            localStorage.setItem('pantryItems', JSON.stringify(pantryItems));
-            localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
-            localStorage.setItem('recipes', JSON.stringify(recipes));
             return;
         }
 
@@ -831,33 +1118,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    function suggestCategory() {
-        const name = itemNameInput.value.toLowerCase().trim();
-        if (name.length < 2) return;
-
-        // 1. Check existing items
-        const existingItem = pantryItems.find(item => item.name.toLowerCase().includes(name));
-        if (existingItem && existingItem.category !== 'Egyéb') {
-            itemCategoryInput.value = existingItem.category;
-            return;
-        }
-
-        // 2. Keyword mapping
-        const keywordCategory = getCategoryFromKeywords(name);
-        if (keywordCategory) {
-            itemCategoryInput.value = keywordCategory;
-            return;
-        }
-
-        // Fallback to existing "Egyéb" if no keyword match
-        if (existingItem) {
-            itemCategoryInput.value = existingItem.category;
-            return;
-        }
-
-        // 3. Online Lookup (Debounced)
-        debouncedFetchCategory(name);
-    }
 
     // Debounce utility
     function debounce(func, wait) {
@@ -879,6 +1139,143 @@ document.addEventListener('DOMContentLoaded', () => {
             itemCategoryInput.value = category;
         }
     }, 500);
+
+    const debouncedAiCategorize = debounce(async (name) => {
+        if (!name || name.length < 3) return;
+
+        // Show loading state
+        const originalPlaceholder = itemCategoryInput.placeholder;
+        itemCategoryInput.placeholder = 'AI gondolkodik...';
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                redirect: 'follow',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'categorizeItem',
+                    itemName: name
+                })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success' && data.category) {
+                // Only update if user hasn't manually selected something else in the meantime
+                if (itemCategoryInput.value === '' || itemCategoryInput.value === 'Egyéb') {
+                    itemCategoryInput.value = data.category;
+                }
+            }
+        } catch (e) {
+            console.error('AI Categorization failed', e);
+        } finally {
+            itemCategoryInput.placeholder = originalPlaceholder;
+        }
+    }, 1000);
+
+    function suggestCategory() {
+        const name = itemNameInput.value.toLowerCase().trim();
+        if (name.length < 2) return;
+
+        // 1. Try local keywords first (fast)
+        let category = getCategoryFromKeywords(name);
+
+        if (category) {
+            itemCategoryInput.value = category;
+        } else {
+            // 2. Fallback to AI
+            debouncedAiCategorize(name);
+        }
+    }
+
+    // Debounced function for recipe category suggestion
+    const debouncedRecipeCategorize = debounce(async (name) => {
+        if (!name || name.length < 3) return;
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                redirect: 'follow',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'categorizeRecipe',
+                    recipeName: name
+                })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success' && data.category) {
+                // Only update if user hasn't manually selected something else
+                if (recipeCategorySelect.value === '') {
+                    recipeCategorySelect.value = data.category;
+                }
+            }
+        } catch (e) {
+            console.error('AI Recipe Categorization failed', e);
+        }
+    }, 1000);
+
+    // Local recipe category keywords (fast lookup)
+    function getRecipeCategoryFromKeywords(name) {
+        const lower = name.toLowerCase();
+
+        // Levesek
+        if (lower.includes('leves') || lower.includes('gulyás') || lower.includes('pörkölt') ||
+            lower.includes('soup') || lower.includes('ragu')) {
+            return 'Levesek';
+        }
+
+        // Tésztás ételek
+        if (lower.includes('tészta') || lower.includes('spагetti') || lower.includes('lasagne') ||
+            lower.includes('penne') || lower.includes('pasta') || lower.includes('makaróni') ||
+            lower.includes('pizza')) {
+            return 'Tésztás ételek';
+        }
+
+        // Főzelékek
+        if (lower.includes('főzelék') || lower.includes('borsó') || lower.includes('spenót') ||
+            lower.includes('tök') || lower.includes('káposzta')) {
+            return 'Főzelékek';
+        }
+
+        // Húsos ételek
+        if (lower.includes('csirke') || lower.includes('hús') || lower.includes('marhа') ||
+            lower.includes('sertés') || lower.includes('bárány') || lower.includes('hal') ||
+            lower.includes('rántott') || lower.includes('pecsenye') || lower.includes('szelet')) {
+            return 'Húsos ételek';
+        }
+
+        // Köretek
+        if (lower.includes('rizs') || lower.includes('burgonya') || lower.includes('krumpli') ||
+            lower.includes('hasábburgonya') || lower.includes('püré')) {
+            return 'Köretek';
+        }
+
+        // Desszertek
+        if (lower.includes('torta') || lower.includes('süti') || lower.includes('palacsinta') ||
+            lower.includes('rétes') || lower.includes('pite') || lower.includes('desszert') ||
+            lower.includes('fagylalt') || lower.includes('puding') || lower.includes('krémes') ||
+            lower.includes('brownie') || lower.includes('muffin') || lower.includes('sütemény')) {
+            return 'Desszertek';
+        }
+
+        return null;
+    }
+
+    function suggestRecipeCategory() {
+        const name = newRecipeNameInput.value.trim();
+        if (!name || name.length < 3) return;
+
+        // 1. Try local keywords first (instant)
+        const localCategory = getRecipeCategoryFromKeywords(name);
+        if (localCategory) {
+            recipeCategorySelect.value = localCategory;
+        } else {
+            // 2. Fallback to AI if no local match
+            if (apiUrl) {
+                debouncedRecipeCategorize(name);
+            }
+        }
+    }
 
     // --- Inspiration Functions ---
 
@@ -902,37 +1299,140 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add more as needed
     };
 
+    async function generateAiRecipe() {
+        if (pantryItems.length === 0) {
+            alert('A kamra üres! Adj hozzá alapanyagokat először.');
+            return;
+        }
+
+        inspirationResult.classList.remove('hidden');
+        inspirationDish.textContent = 'Az AI séf gondolkodik... 🤖';
+        inspirationDetails.innerHTML = '<div class="skeleton-loader"><div class="skeleton-item"></div><div class="skeleton-item"></div></div>';
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                redirect: 'follow',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8',
+                },
+                body: JSON.stringify({
+                    action: 'generateRecipe',
+                    items: pantryItems
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                if (data.recipe) {
+                    const recipe = data.recipe;
+                    inspirationDish.textContent = `🍽️ ${recipe.title}`;
+
+                    let html = '<div class="ai-recipe-content">';
+
+                    // Ingredients
+                    html += '<h4>Hozzávalók:</h4><ul>';
+                    recipe.ingredients.forEach(ing => {
+                        html += `<li>${ing}</li>`;
+                    });
+                    html += '</ul>';
+
+                    // Missing Ingredients (if any)
+                    if (recipe.missingIngredients && recipe.missingIngredients.length > 0) {
+                        html += '<h4>Hiányzó alapanyagok:</h4><ul class="missing-ingredients">';
+                        recipe.missingIngredients.forEach(ing => {
+                            html += `<li>⚠️ ${ing}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+
+                    // Instructions
+                    html += '<h4>Elkészítés:</h4><ol>';
+                    recipe.instructions.forEach(step => {
+                        html += `<li>${step}</li>`;
+                    });
+                    html += '</ol></div>';
+
+                    inspirationDetails.innerHTML = html;
+                } else {
+                    throw new Error('A backend verziója régi. Kérlek, csinálj "New deployment"-et a Google Apps Script-ben!');
+                }
+            } else {
+                throw new Error(data.message || 'Ismeretlen hiba');
+            }
+
+        } catch (error) {
+            console.error('AI Error:', error);
+            inspirationDish.textContent = 'Hiba történt 😕';
+            inspirationDetails.innerHTML = `<p>Nem sikerült receptet generálni. Ellenőrizd az API kulcsot és az internetkapcsolatot.<br><small>${error.message}</small></p>`;
+        }
+    }
+
     async function generateInspiration() {
-        const originalBtnText = generateInspirationBtn.innerHTML;
-        generateInspirationBtn.innerHTML = '<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Generálás...';
+        const originalBtnContent = generateInspirationBtn.innerHTML;
+        // Hourglass/Loading icon
+        generateInspirationBtn.innerHTML = '<svg class="icon spinning" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4"></path><path d="M12 18v4"></path><path d="M4.93 4.93l2.83 2.83"></path><path d="M16.24 16.24l2.83 2.83"></path><path d="M2 12h4"></path><path d="M18 12h4"></path><path d="M4.93 19.07l2.83-2.83"></path><path d="M16.24 7.76l2.83-2.83"></path></svg>';
         generateInspirationBtn.disabled = true;
         inspirationResult.classList.add('hidden');
 
         try {
-            // Fetch random meal from TheMealDB API
+            // 1. Fetch random meal from TheMealDB API
             const response = await fetch('https://www.themealdb.com/api/json/v1/1/random.php');
             const data = await response.json();
 
             if (data.meals && data.meals.length > 0) {
                 const meal = data.meals[0];
-                const englishName = meal.strMeal;
-                const hungarianName = mealTranslations[englishName] || englishName;
+                let name = meal.strMeal;
+                let category = meal.strCategory;
                 const image = meal.strMealThumb;
-                const category = meal.strCategory;
+
+                // 2. Translate Name and Category using Backend AI (if API URL is set)
+                if (apiUrl) {
+                    try {
+                        const batchResponse = await fetch(apiUrl, {
+                            method: 'POST',
+                            redirect: 'follow',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({
+                                action: 'translateBatch',
+                                texts: { name: name, category: category },
+                                targetLang: 'hu'
+                            })
+                        });
+                        const batchData = await batchResponse.json();
+
+                        if (batchData.status === 'success' && batchData.translations) {
+                            name = batchData.translations.name || name;
+                            category = batchData.translations.category || category;
+                        }
+
+                    } catch (e) {
+                        console.warn('Translation failed, using English:', e);
+                        // Fallback to local dictionary if available
+                        name = mealTranslations[name] || name;
+                    }
+                }
 
                 // Display result
-                inspirationDish.textContent = hungarianName;
-                inspirationDescription.innerHTML = `<strong>Kategória:</strong> ${category}`;
+                inspirationDish.textContent = '';
 
-                // Add image
-                let img = inspirationResult.querySelector('img');
-                if (!img) {
-                    img = document.createElement('img');
-                    inspirationResult.insertBefore(img, inspirationResult.firstChild);
-                }
-                img.src = image;
-                img.alt = hungarianName;
+                let html = `
+                    <div class="random-recipe-card">
+                        <div class="recipe-image-wrapper">
+                            <img src="${image}" alt="${name}" class="recipe-image">
+                        </div>
+                        <div class="recipe-info">
+                            <h3>${name}</h3>
+                            <p class="recipe-category"><strong>Kategória:</strong> ${category}</p>
+                            <a href="${meal.strSource || '#'}" target="_blank" class="recipe-link">
+                                Recept <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            </a>
+                        </div>
+                    </div>
+                `;
 
+                inspirationDetails.innerHTML = html;
                 inspirationResult.classList.remove('hidden');
             } else {
                 alert('Nem sikerült ételt találni. Próbáld újra!');
@@ -941,7 +1441,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error generating inspiration:', error);
             alert('Hiba történt az inspiráció generálása során.');
         } finally {
-            generateInspirationBtn.innerHTML = originalBtnText;
+            generateInspirationBtn.innerHTML = originalBtnContent;
             generateInspirationBtn.disabled = false;
         }
     }

@@ -39,8 +39,8 @@
                     <div class="input-group">
                         <input type="number" id="item-quantity" placeholder="Mennyiség" min="0" step="0.1">
                     </div>
-                    <div class="input-group">
-                        <input type="text" id="item-unit" placeholder="Mértékegység (pl. kg, db)" list="units">
+                    <div class="input-group" style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="item-unit" placeholder="Egység (pl. kg, db)" list="units">
                         <datalist id="units">
                             <option value="db">
                             <option value="kg">
@@ -49,8 +49,20 @@
                             <option value="ml">
                             <option value="csomag">
                         </datalist>
+                        <button id="expiry-btn" class="btn-secondary" style="width: auto; min-width: 50px; padding: 0;"
+                            title="Lejárat hozzáadása">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </button>
                     </div>
                 </div>
+                <div id="expiry-date-container" class="input-group hidden" style="margin-top: 0.5rem;">
+                    <input type="date" id="item-expiry" style="width: 100%;">
+                </div>
+
                 <div class="input-group">
                     <input type="text" id="item-category" placeholder="Kategória (pl. Tészták)" list="categories">
                     <datalist id="categories">
@@ -139,25 +151,34 @@
                         </svg>
                         Inspiráció
                     </h2>
-                    <button id="generate-inspiration-btn" class="btn-primary">
-                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-                            <line x1="7" y1="2" x2="7" y2="22"></line>
-                            <line x1="17" y1="2" x2="17" y2="22"></line>
-                            <line x1="2" y1="12" x2="22" y2="12"></line>
-                            <line x1="2" y1="7" x2="7" y2="7"></line>
-                            <line x1="2" y1="17" x2="7" y2="17"></line>
-                            <line x1="17" y1="17" x2="22" y2="17"></line>
-                            <line x1="17" y1="7" x2="22" y2="7"></line>
-                        </svg>
-                        Generálás
-                    </button>
+                    <div>
+                        <button id="generate-inspiration-btn" class="btn-secondary" title="Véletlen recept">
+                            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <path d="M16 3h5v5"></path>
+                                <path d="M4 20L21 3"></path>
+                                <path d="M21 16v5h-5"></path>
+                                <path d="M15 15l6 6"></path>
+                                <path d="M4 4l5 5"></path>
+                            </svg>
+                        </button>
+                        <button id="ai-chef-btn" class="btn-primary"
+                            style="background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none;">
+                            <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z">
+                                </path>
+                                <path d="M12 8v8"></path>
+                                <path d="M8 12h8"></path>
+                            </svg>
+                            AI séf
+                        </button>
+                    </div>
                 </div>
                 <div id="inspiration-result" class="inspiration-result hidden">
-                    <div>
+                    <div id="ai-result-content">
                         <h3 id="inspiration-dish"></h3>
-                        <p id="inspiration-description"></p>
+                        <div id="inspiration-details"></div>
                     </div>
                 </div>
             </section>
@@ -211,6 +232,14 @@
         </div>
 
         <div class="main-content">
+            <!-- Skeleton Loader -->
+            <div id="skeleton-loader" class="skeleton-loader">
+                <div class="skeleton-header"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+            </div>
+
             <main id="pantry-list">
                 <!-- Categories and items will be rendered here -->
                 <div class="empty-state">
@@ -218,24 +247,41 @@
                 </div>
             </main>
 
-            <aside id="shopping-list-section">
-                <div class="shopping-list-header">
+            <div class="shopping-list-section">
+                <div class="shopping-header">
                     <h2>Bevásárlólista</h2>
-                    <button id="clear-list-btn" class="btn-text" title="Lista törlése">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
-                            </path>
-                        </svg>
-                    </button>
+                    <div class="shopping-controls">
+                        <button id="add-item-to-shopping-btn" class="btn-icon" title="Hozzáadás a bevásárlólistához">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                        </button>
+                        <button id="add-checked-to-pantry-btn" class="btn-icon" title="Vásárolt termékek hozzáadása">
+                            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"></path>
+                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
+                            </svg>
+                        </button>
+                        <button id="clear-list-btn" class="btn-icon" title="Lista törlése">
+                            <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2">
+                                </path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div id="shopping-list-items">
                     <div class="empty-state-small">
-                        <p>A lista üres.</p>
+                        Nincs termék a listán
                     </div>
                 </div>
-            </aside>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>
