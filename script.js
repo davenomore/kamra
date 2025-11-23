@@ -31,23 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let editingRecipeId = null;
 
     // State
-    let pantryItems = JSON.parse(localStorage.getItem('pantryItems')) || [];
-    let shoppingList = JSON.parse(localStorage.getItem('shoppingList')) || [];
-    let recipes = JSON.parse(localStorage.getItem('recipes')) || [
-        {
-            id: 1,
-            name: 'Bolognai spagetti',
-            category: 'Tésztás ételek',
-            ingredients: [
-                { name: 'Spagetti tészta', quantity: 0.5, unit: 'kg' },
-                { name: 'Sertés darálthús', quantity: 0.5, unit: 'kg' },
-                { name: 'Hagyma', quantity: 1, unit: 'fej' },
-                { name: 'Bolognai por', quantity: 2, unit: 'db' },
-                { name: 'Olaj', quantity: 0.1, unit: 'l' },
-                { name: 'Olasz fűszerek', quantity: 1, unit: 'csomag' }
-            ]
-        }
-    ];
+    let apiUrl = localStorage.getItem('apiUrl') || '';
+    let pantryItems = [];
+    let shoppingList = [];
+    let recipes = [];
+    let isSyncing = false;
+
 
     // Initialize
     renderItems();
@@ -622,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             recipes.push(newRecipe);
         }
-        localStorage.setItem('recipes', JSON.stringify(recipes));
+        saveData();
         renderRecipeSelect();
         closeRecipeModal();
         alert('Recept sikeresen mentve!');
@@ -635,9 +624,107 @@ document.addEventListener('DOMContentLoaded', () => {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
+    // --- Cloud Sync Functions ---
+
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsBtn = document.getElementById('settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const apiUrlInput = document.getElementById('api-url');
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            apiUrlInput.value = apiUrl;
+            settingsModal.classList.remove('hidden');
+        });
+    }
+
+    if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+        });
+    }
+
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', () => {
+            const url = apiUrlInput.value.trim();
+            if (url) {
+                apiUrl = url;
+                localStorage.setItem('apiUrl', apiUrl);
+                settingsModal.classList.add('hidden');
+                loadData(); // Reload data from new URL
+            } else {
+                alert('Kérlek add meg az URL-t!');
+            }
+        });
+    }
+
+    async function loadData() {
+        if (!apiUrl) {
+            // Fallback to local storage if no URL
+            pantryItems = JSON.parse(localStorage.getItem('pantryItems')) || [];
+            shoppingList = JSON.parse(localStorage.getItem('shoppingList')) || [];
+            recipes = JSON.parse(localStorage.getItem('recipes')) || [];
+            renderItems();
+            renderShoppingList();
+            renderRecipeSelect();
+            updateCategoryDatalist();
+            return;
+        }
+
+        try {
+            // Show loading state (optional)
+            document.body.style.cursor = 'wait';
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+
+            pantryItems = data.pantryItems || [];
+            shoppingList = data.shoppingList || [];
+            recipes = data.recipes || [];
+
+            renderItems();
+            renderShoppingList();
+            renderRecipeSelect();
+            updateCategoryDatalist();
+        } catch (error) {
+            console.error('Error loading data:', error);
+            alert('Hiba történt az adatok betöltésekor. Ellenőrizd az internetkapcsolatot vagy az URL-t.');
+        } finally {
+            document.body.style.cursor = 'default';
+        }
+    }
+
+    const debouncedSave = debounce(async () => {
+        if (!apiUrl) {
+            localStorage.setItem('pantryItems', JSON.stringify(pantryItems));
+            localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+            localStorage.setItem('recipes', JSON.stringify(recipes));
+            return;
+        }
+
+        if (isSyncing) return;
+        isSyncing = true;
+
+        try {
+            await fetch(apiUrl, {
+                method: 'POST',
+                body: JSON.stringify({
+                    pantryItems,
+                    shoppingList,
+                    recipes
+                })
+            });
+            console.log('Data synced successfully');
+        } catch (error) {
+            console.error('Error syncing data:', error);
+            // Optionally alert user or retry
+        } finally {
+            isSyncing = false;
+        }
+    }, 2000); // 2 second debounce
+
     function saveData() {
-        localStorage.setItem('pantryItems', JSON.stringify(pantryItems));
-        localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
+        debouncedSave();
     }
 
     function updateCategoryDatalist() {
