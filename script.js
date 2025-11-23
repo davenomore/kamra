@@ -43,7 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderItems();
     renderShoppingList();
     renderRecipeSelect();
-    updateCategoryDatalist(); // Initialize datalist
+    updateCategoryDatalist();
+    loadData(); // Fetch data from cloud // Initialize datalist
 
     // Event Listeners
     addBtn.addEventListener('click', addItem);
