@@ -1064,6 +1064,10 @@ input::placeholder {
         gap: 0.5rem;
         margin-bottom: 0.25rem;
         /* Further reduced gap */
+        position: relative;
+        /* Ensure z-index works */
+        z-index: 10;
+        /* Bring to front */
     }
 
     .nav-btn {
@@ -1078,13 +1082,16 @@ input::placeholder {
         background: rgba(0, 0, 0, 0.05);
         /* Gray bg like btn-icon */
         border: none;
-        /* No border */
         border-radius: 8px;
         color: var(--text-secondary);
         font-size: 0.75rem;
-        /* Smaller font */
         cursor: pointer;
         transition: all 0.2s;
+        /* Mobile fixes */
+        -webkit-appearance: none;
+        appearance: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .nav-btn svg {

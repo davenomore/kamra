@@ -94,32 +94,56 @@ document.addEventListener('DOMContentLoaded', () => {
     const recipeSection = document.querySelector('.recipe-section');
     const inspirationSection = document.querySelector('.inspiration-section');
 
-    function switchMobileSection(sectionName) {
+    // Make globally accessible for debugging/inline calls if needed
+    window.switchMobileSection = function (sectionName) {
+        console.log('Switching to mobile section:', sectionName); // Debug log
+
         // Remove active class from all buttons and sections
-        [navAddItem, navRecipe, navInspiration].forEach(btn => btn.classList.remove('active'));
-        [addItemSection, recipeSection, inspirationSection].forEach(sec => sec.classList.remove('active'));
+        [navAddItem, navRecipe, navInspiration].forEach(btn => {
+            if (btn) btn.classList.remove('active');
+        });
+        [addItemSection, recipeSection, inspirationSection].forEach(sec => {
+            if (sec) sec.classList.remove('active');
+        });
 
         // Add active class to selected
-        if (sectionName === 'add-item') {
+        if (sectionName === 'add-item' && navAddItem && addItemSection) {
             navAddItem.classList.add('active');
             addItemSection.classList.add('active');
-        } else if (sectionName === 'recipe') {
+        } else if (sectionName === 'recipe' && navRecipe && recipeSection) {
             navRecipe.classList.add('active');
             recipeSection.classList.add('active');
-        } else if (sectionName === 'inspiration') {
+        } else if (sectionName === 'inspiration' && navInspiration && inspirationSection) {
             navInspiration.classList.add('active');
             inspirationSection.classList.add('active');
         }
-    }
+    };
 
     if (navAddItem && navRecipe && navInspiration) {
-        navAddItem.addEventListener('click', () => switchMobileSection('add-item'));
-        navRecipe.addEventListener('click', () => switchMobileSection('recipe'));
-        navInspiration.addEventListener('click', () => switchMobileSection('inspiration'));
+        // Use both click and touchstart for better mobile response
+        ['click', 'touchstart'].forEach(evt => {
+            navAddItem.addEventListener(evt, (e) => {
+                if (e.cancelable) e.preventDefault(); // Prevent double firing
+                window.switchMobileSection('add-item');
+            }, { passive: false });
+
+            navRecipe.addEventListener(evt, (e) => {
+                if (e.cancelable) e.preventDefault();
+                window.switchMobileSection('recipe');
+            }, { passive: false });
+
+            navInspiration.addEventListener(evt, (e) => {
+                if (e.cancelable) e.preventDefault();
+                window.switchMobileSection('inspiration');
+            }, { passive: false });
+        });
 
         // Initialize active state for mobile
         if (window.innerWidth <= 768) {
-            addItemSection.classList.add('active');
+            // Ensure one is active
+            if (!document.querySelector('.nav-btn.active')) {
+                window.switchMobileSection('add-item');
+            }
         }
     }
 
