@@ -49,6 +49,9 @@
                 </button>
             </div>
             <section class="add-item-section">
+                <div class="input-group">
+                    <h2>Termék hozzáadása</h2>
+                </div>
                 <div class="input-group" style="display: flex; gap: 0.5rem;">
                     <input type="text" id="item-name" placeholder="Termék neve (pl. Spagetti)" autocomplete="off">
                     <button id="scan-btn" class="btn-secondary" style="width: auto; min-width: 50px; padding: 0;"
@@ -71,11 +74,17 @@
                         <input type="text" id="item-unit" placeholder="Egység (pl. kg, db)" list="units">
                         <datalist id="units">
                             <option value="db">
+                            </option>
                             <option value="kg">
+                            </option>
                             <option value="g">
+                            </option>
                             <option value="l">
+                            </option>
                             <option value="ml">
+                            </option>
                             <option value="csomag">
+                            </option>
                         </datalist>
                         <button id="expiry-btn" class="btn-secondary" style="width: auto; min-width: 50px; padding: 0;"
                             title="Lejárat hozzáadása">
@@ -91,27 +100,34 @@
                     <input type="date" id="item-expiry" style="width: 100%;">
                 </div>
 
-                <div class="input-group">
-                    <input type="text" id="item-category" placeholder="Kategória (pl. Tészták)" list="categories">
-                    <datalist id="categories">
-                        <option value="Tészták">
-                        <option value="Fűszerek">
-                        <option value="Zöldségek">
-                        <option value="Gyümölcsök">
-                        <option value="Konzervek">
-                        <option value="Tejtermékek">
-                        <option value="Pékáru">
-                        <option value="Egyéb">
-                    </datalist>
+                <div class="category-add-row">
+                    <div class="input-group">
+                        <input type="text" id="item-category" placeholder="Kategória (pl. Tészták)" list="categories">
+                        <datalist id="categories">
+                            <option value="Egyéb"></option>
+                            <option value="Fűszerek"></option>
+                            <option value="Gabonafélék"></option>
+                            <option value="Gyümölcsök"></option>
+                            <option value="Húsok"></option>
+                            <option value="Italok"></option>
+                            <option value="Konzervek"></option>
+                            <option value="Nasi"></option>
+                            <option value="Pékáru"></option>
+                            <option value="Sütés"></option>
+                            <option value="Tejtermékek"></option>
+                            <option value="Tészták"></option>
+                            <option value="Zöldségek"></option>
+                        </datalist>
+                    </div>
+                    <button id="add-btn" class="btn-primary">
+                        <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Hozzáadás
+                    </button>
                 </div>
-                <button id="add-btn" class="btn-primary">
-                    <svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Hozzáadás
-                </button>
             </section>
 
             <section class="recipe-section">
@@ -203,10 +219,30 @@
                         </button>
                     </div>
                 </div>
-                <div id="inspiration-result" class="inspiration-result hidden">
+                <div id="inspiration-result" class="inspiration-result">
                     <div id="ai-result-content">
                         <h3 id="inspiration-dish"></h3>
-                        <div id="inspiration-details"></div>
+                        <div id="inspiration-details">
+                            <div class="random-recipe-card">
+                                <div class="recipe-image-wrapper">
+                                    <img src="https://www.themealdb.com/images/media/meals/4xcfai1763765676.jpg"
+                                        alt="Bang bang garnélarák saláta" class="recipe-image">
+                                </div>
+                                <div class="recipe-info">
+                                    <h3>Bang bang garnélarák saláta</h3>
+                                    <p class="recipe-category"><strong>Kategória:</strong> Tenger gyümölcsei</p>
+                                    <a href="https://www.bbcgoodfood.com/recipes/bang-bang-prawn-salad" target="_blank"
+                                        class="recipe-link">
+                                        Recept <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                            <polyline points="15 3 21 3 21 9"></polyline>
+                                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
