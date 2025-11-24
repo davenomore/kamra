@@ -41,11 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // Initialize
-    renderItems();
-    renderShoppingList();
-    renderRecipeSelect();
-    updateCategoryDatalist();
-    loadData(); // Fetch data from cloud // Initialize datalist
+    loadData(); // Fetch data from cloud first, then render
     generateInspiration(true); // Auto-generate inspiration on load (silent)
 
     const expiryBtn = document.getElementById('expiry-btn');
@@ -1023,7 +1019,14 @@ document.addEventListener('DOMContentLoaded', () => {
             updateCategoryDatalist();
         }
 
-        if (!apiUrl) return;
+        if (!apiUrl) {
+            // If no API URL, still render the UI with empty/cached data
+            renderItems();
+            renderShoppingList();
+            renderRecipeSelect();
+            updateCategoryDatalist();
+            return;
+        }
 
         try {
             // Show loading state (optional)
@@ -1038,7 +1041,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ...item,
                 id: item.id || Date.now() + Math.random()
             }));
-            shoppingList = data.shoppingList || [];
+            shoppingList = (data.shoppingList || []).map(item => ({
+                ...item,
+                id: item.id || Date.now() + Math.random()
+            }));
             recipes = data.recipes || [];
 
             // Update cache
@@ -1055,6 +1061,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // If cache was empty and fetch failed, alert user. Otherwise, silent fail (keep using cache).
             if (!cachedPantry && !cachedShopping && !cachedRecipes) {
                 alert('Hiba történt az adatok betöltésekor. Ellenőrizd az internetkapcsolatot.');
+                // Still render the UI with empty data
+                renderItems();
+                renderShoppingList();
+                renderRecipeSelect();
+                updateCategoryDatalist();
             }
         } finally {
             document.body.style.cursor = 'default';
